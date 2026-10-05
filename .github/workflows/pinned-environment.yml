@@ -1,0 +1,104 @@
+name: Pinned Lean environment
+on:
+  push:
+    branches: [proofs/run59-completion]
+    paths: [.github/workflows/pinned-environment.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  environment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned compiler and mathlib
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$RUNNER_TEMP/runtime"
+          cd "$RUNNER_TEMP/runtime"
+          curl -fLsS --retry 3 https://github.com/leanprover/lean4/releases/download/v4.28.0/lean-4.28.0-linux.tar.zst -o lean.tar.zst
+          echo 'ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd  lean.tar.zst' | sha256sum -c -
+          tar --zstd -xf lean.tar.zst
+          mv lean-4.28.0-linux lean
+          rm lean.tar.zst
+          export PATH="$PWD/lean/bin:$PATH"
+          lean --version
+          git clone --depth 1 --branch v4.28.0 https://github.com/leanprover-community/mathlib4.git mathlib
+          cd mathlib
+          test "$(git rev-parse HEAD)" = '8f9d9cff6bd728b17a24e163c9402775d9e6a365'
+          lake exe cache get
+          printf 'import Mathlib\n#check MeasureTheory.integral_prod\n' > RuntimeCheck.lean
+          lake env lean RuntimeCheck.lean | tee ../runtime-check.log
+          rm RuntimeCheck.lean
+      - name: Archive compiler and cached dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd "$RUNNER_TEMP/runtime"
+          mkdir -p "$GITHUB_WORKSPACE/runtime-parts"
+          tar --exclude='*.c' --exclude='*.c.o' --exclude='*.ilean' --exclude='*.trace' --exclude='*.hash' --exclude='*/.git/objects' --exclude='lean/src' --exclude='lean/share/doc' -cf - lean mathlib runtime-check.log | zstd -T2 -8 | split -b 400M -d - "$GITHUB_WORKSPACE/runtime-parts/environment.tar.zst."
+          cd "$GITHUB_WORKSPACE/runtime-parts"
+          sha256sum environment.tar.zst.* > SHA256SUMS
+          ls -lh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-00
+          path: runtime-parts/environment.tar.zst.00
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-01
+          path: runtime-parts/environment.tar.zst.01
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-02
+          path: runtime-parts/environment.tar.zst.02
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-03
+          path: runtime-parts/environment.tar.zst.03
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-04
+          path: runtime-parts/environment.tar.zst.04
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-05
+          path: runtime-parts/environment.tar.zst.05
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-06
+          path: runtime-parts/environment.tar.zst.06
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-07
+          path: runtime-parts/environment.tar.zst.07
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-environment-checksums
+          path: runtime-parts/SHA256SUMS
+          retention-days: 7
