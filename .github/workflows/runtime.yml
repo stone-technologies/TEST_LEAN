@@ -104,3 +104,15 @@ jobs:
           path: ${{ runner.temp }}/runtime-parts/runtime.tar.zst.part09
           compression-level: 0
           if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-part-10
+          path: ${{ runner.temp }}/runtime-parts/runtime.tar.zst.part10
+          compression-level: 0
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-part-11
+          path: ${{ runner.temp }}/runtime-parts/runtime.tar.zst.part11
+          compression-level: 0
+          if-no-files-found: ignore
