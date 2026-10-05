@@ -1,0 +1,39 @@
+name: Pinned interpreter data
+on:
+  push:
+    branches: ['proof/run59-closure']
+    paths: ['.github/workflows/runtime-ir.yml']
+permissions:
+  contents: read
+jobs:
+  interpreter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Install pinned Lean and mathlib
+        run: |
+          set -euxo pipefail
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.28.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.elan/bin:$PATH"
+          mkdir -p "$RUNNER_TEMP/ir-runtime"
+          cd "$RUNNER_TEMP/ir-runtime"
+          git clone --depth 1 --branch v4.28.0 https://github.com/leanprover-community/mathlib4 mathlib
+          cd mathlib
+          test "$(git rev-parse HEAD)" = 8f9d9cff6bd728b17a24e163c9402775d9e6a365
+          lake exe cache get
+          printf 'import Mathlib\nexample : (1 : Real) + 1 = 2 := by norm_num\n' > Test.lean
+          lake env lean Test.lean
+      - name: Package interpreter data
+        run: |
+          set -euxo pipefail
+          cd "$RUNNER_TEMP/ir-runtime"
+          cp -a "$HOME/.elan/toolchains/leanprover--lean4---v4.28.0" toolchain
+          find mathlib toolchain -name '*.ir' -print0 | tar --null -T - -cf - | zstd -T2 -3 > "$RUNNER_TEMP/runtime-ir.tar.zst"
+          sha256sum "$RUNNER_TEMP/runtime-ir.tar.zst"
+          ls -lh "$RUNNER_TEMP/runtime-ir.tar.zst"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-ir
+          path: ${{ runner.temp }}/runtime-ir.tar.zst
+          compression-level: 0
