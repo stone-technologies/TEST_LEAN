@@ -1,0 +1,76 @@
+name: Lean runtime chunks
+on:
+  push:
+    branches: [paper-completion-20261006]
+    paths: [.github/workflows/lean-runtime-chunks.yml]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  split:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: lean-toolchain-4.28.0
+          run-id: 37532210639
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: mathlib-runtime-4.28.0
+          run-id: 37532210639
+          github-token: ${{ github.token }}
+      - name: Split archives
+        run: |
+          set -euo pipefail
+          split -b 400M -d lean-runtime.tar.zst lean.part
+          split -b 400M -d mathlib-runtime.tar.zst mathlib.part
+          sha256sum lean-runtime.tar.zst mathlib-runtime.tar.zst lean.part* mathlib.part* > chunks.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-part-00
+          path: lean.part00
+          compression-level: 0
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-part-01
+          path: lean.part01
+          compression-level: 0
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mathlib-part-00
+          path: mathlib.part00
+          compression-level: 0
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mathlib-part-01
+          path: mathlib.part01
+          compression-level: 0
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mathlib-part-02
+          path: mathlib.part02
+          compression-level: 0
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mathlib-part-03
+          path: mathlib.part03
+          compression-level: 0
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mathlib-part-04
+          path: mathlib.part04
+          compression-level: 0
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chunks-sha256
+          path: chunks.sha256
+          retention-days: 3
