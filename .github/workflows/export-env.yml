@@ -1,0 +1,30 @@
+name: Export pinned Lean environment
+on:
+  push:
+    branches: [proof-closure-20261006]
+    paths: [.github/workflows/export-env.yml]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Install Lean and Mathlib
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.28.0
+          export PATH="$HOME/.elan/bin:$PATH"
+          git clone --depth 1 --branch v4.28.0 https://github.com/leanprover-community/mathlib4.git /tmp/mathlib
+          cd /tmp/mathlib
+          lake exe cache get
+      - name: Archive dependencies
+        run: |
+          tar -C "$HOME/.elan/toolchains" -I 'zstd -T0 -3' -cf /tmp/lean-runtime.tar.zst leanprover--lean4---v4.28.0
+          tar -C /tmp -I 'zstd -T0 -3' --exclude='.git' --exclude='*.c' --exclude='*.o' --exclude='*.a' --exclude='*.ilean' --exclude='*.trace' --exclude='*.hash' -cf /tmp/mathlib-runtime.tar.zst mathlib
+          ls -lh /tmp/*runtime.tar.zst
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean428-environment
+          path: /tmp/*runtime.tar.zst
+          compression-level: 0
+          retention-days: 1
