@@ -21,10 +21,42 @@ jobs:
         run: |
           tar -C "$HOME/.elan/toolchains" -I 'zstd -T0 -3' -cf /tmp/lean-runtime.tar.zst leanprover--lean4---v4.28.0
           tar -C /tmp -I 'zstd -T0 -3' --exclude='.git' --exclude='*.c' --exclude='*.o' --exclude='*.a' --exclude='*.ilean' --exclude='*.trace' --exclude='*.hash' -cf /tmp/mathlib-runtime.tar.zst mathlib
-          ls -lh /tmp/*runtime.tar.zst
+          split -b 450M -d -a2 /tmp/lean-runtime.tar.zst /tmp/lean.part-
+          split -b 450M -d -a2 /tmp/mathlib-runtime.tar.zst /tmp/mathlib.part-
+          ls -lh /tmp/*.part-*
       - uses: actions/upload-artifact@v4
         with:
-          name: lean428-environment
-          path: /tmp/*runtime.tar.zst
+          name: lean428-lean-00
+          path: /tmp/lean.part-00
+          compression-level: 0
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean428-lean-01
+          path: /tmp/lean.part-01
+          compression-level: 0
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean428-mathlib-00
+          path: /tmp/mathlib.part-00
+          compression-level: 0
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean428-mathlib-01
+          path: /tmp/mathlib.part-01
+          compression-level: 0
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean428-mathlib-02
+          path: /tmp/mathlib.part-02
+          compression-level: 0
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean428-mathlib-03
+          path: /tmp/mathlib.part-03
           compression-level: 0
           retention-days: 1
