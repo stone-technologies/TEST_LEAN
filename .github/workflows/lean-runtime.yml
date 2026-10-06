@@ -1,0 +1,57 @@
+name: Pinned Lean runtime
+on:
+  push:
+    branches: [paper-completion-20261006]
+    paths: [.github/workflows/lean-runtime.yml]
+permissions:
+  contents: read
+jobs:
+  runtime:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Install pinned toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.28.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Obtain pinned mathlib and cached object files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p runtime/project
+          cd runtime/project
+          printf 'leanprover/lean4:v4.28.0\n' > lean-toolchain
+          printf 'import Lake\nopen Lake DSL\npackage proofcheck\nrequire mathlib from git "https://github.com/leanprover-community/mathlib4" @ "v4.28.0"\n' > lakefile.lean
+          lake update
+          lake exe cache get
+          lean --version > ../../runtime-version.txt
+          lake --version >> ../../runtime-version.txt
+          du -sh "$HOME/.elan" .lake >> ../../runtime-version.txt
+      - name: Package runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --zstd -cf lean-runtime.tar.zst -C "$HOME" .elan
+          tar --exclude=.git --exclude='*.c' --exclude='*.o' --exclude='*.a' --zstd -cf mathlib-runtime.tar.zst -C runtime project
+          sha256sum *runtime.tar.zst >> runtime-version.txt
+          ls -lh *runtime.tar.zst >> runtime-version.txt
+          cat runtime-version.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-toolchain-4.28.0
+          path: lean-runtime.tar.zst
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mathlib-runtime-4.28.0
+          path: mathlib-runtime.tar.zst
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-version
+          path: runtime-version.txt
+          retention-days: 7
