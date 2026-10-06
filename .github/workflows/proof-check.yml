@@ -1,0 +1,33 @@
+name: Lean proof checks
+on:
+  push:
+    branches: [proof-closure-20261006]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Lean toolchain
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.28.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Prepare pinned Mathlib
+        run: |
+          git clone --depth 1 --branch v4.28.0 https://github.com/leanprover-community/mathlib4.git /tmp/mathlib
+          cd /tmp/mathlib
+          lake exe cache get
+      - name: Check supplied proof files
+        run: |
+          cd /tmp/mathlib
+          if [ -d "$GITHUB_WORKSPACE/ProofClosure" ]; then
+            for f in "$GITHUB_WORKSPACE"/ProofClosure/*.lean; do
+              echo "CHECKING $f"
+              lake env lean "$f"
+            done
+          else
+            printf 'import Mathlib\n#check MeasureTheory.condExp_mono\n' > /tmp/Check.lean
+            lake env lean /tmp/Check.lean
+          fi
